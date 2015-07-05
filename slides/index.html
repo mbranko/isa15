@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="sr">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Internet softverske arhitekture - deo 1</title>
+
+		<meta name="description" content="Slajdovi za predmet Internet softverske arhitekture">
+		<meta name="author" content="Branko Milosavljević">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/black.css" id="theme">
+
+		<!-- Code syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<div class="slides">
+<section data-markdown>
+    <script type="text/template">
+        # Internet softverske arhitekture
+        Branko Milosavljević, https://github.com/mbranko
+    </script>
+</section>
+
+<section data-markdown>
+    <script type="text/template">
+        ## O predmetu
+        #### Serverska strana Internet aplikacija
+        1. inverzija kontrole
+        - ubrizgavanje zavisnosti
+        - rukovanje deljenim resursima
+        - aspekt-orijentisano programiranje
+        - konvencija vs konfiguracija
+        - HTTP i REST
+        - pristup bazama podataka i ORM
+        - transakcije
+        - asinhrono izvršavanje
+        - WebSockets
+        - performanse i klasteri
+    </script>
+</section>
+
+<section data-markdown>
+    <script type="text/template">
+        ## Tehnologija implementacije
+        - u nastavi koristimo:
+            - Java + Spring + Hibernate
+        - za implementaciju projekata
+            - Java + Spring + Hibernate
+            - Java + JEE
+            - Python + Django
+            - Ruby + Rails
+            - ...bilo šta
+    </script>
+</section>
+
+<section data-markdown>
+    <script type="text/template">
+        ## Literatura i nastavni materijali
+        - https://enastava.io
+        - Craig Walls. *Spring in Action*. Manning, 2015.
+        - Christian Bauer, Gavin King. *Java Persistence with Hibernate*. Manning, 2005.
+    </script>
+</section>
+
+<section data-markdown>
+    <script type="text/template">
+        ## Polaganje ispita
+        - izrada projekta
+        - obrana projekta + teorija
+    </script>
+</section>
+
+<section data-markdown>
+    <script type="text/template">
+        ## Alati za projekat
+        - [Apache Tomcat](http://tomcat.apache.org)
+        - [Spring](http://projects.spring.io/spring-framework/)
+        - [Hibernate](http://hibernate.org)
+        - [Gradle](http://gradle.org)
+        - [Eclipse](https://www.eclipse.org) / [IntelliJ](https://www.jetbrains.com/idea/)
+    </script>
+</section>
+
+<section>
+	<h2>Osnovni scenario</h2>
+    <img src="img/scenario.svg" width="600"/>
+</section>
+
+<section>
+    <h2>Projektni zadatak</h2>
+    <a href="pdf/isa15-zadatak.pdf">PDF</a>
+</section>
+
+<section>
+    <h1>#1<br/>Inversion of Control</h1>
+</section>
+
+<section>
+    <h2>HTTP server od nule</h2>
+    <pre><code data-trim>
+// glavna serverska petlja
+ServerSocket ss = new ServerSocket(80);
+while (true) {
+    Socket s = ss.accept();
+    ResponseThread t = new ResponseThread(s);
+    t.run();
+}
+</code></pre>
+<pre><code data-trim>
+class ResponseThread extends Thread {
+    public void run() {
+        BufferedReader in = new BufferedReader(
+            new InputStreamReader(socket.getInputStream()));
+        String line = in.readLine();
+        // obrada svakog zahteva u posebnom threadu
+    }
+}
+    </code></pre>
+</section>
+
+<section data-markdown>
+    <script type="text/template">
+        ## HTTP server od nule
+        - puno kôda za opšte stvari
+        - poslovna logika nije razdvojena od HTTP komunikacije
+        - komplikovano održavanje
+    </script>
+</section>
+
+<section data-markdown>
+    <script type="text/template">
+        ## The Hollywood Principle
+        [Don't call me, I'll call you](https://en.wikipedia.org/wiki/Hollywood_principle)
+        </script>
+</section>
+
+<section data-markdown>
+    <script type="text/template">
+        ## Inversion of Control <br/> == <br/> The Hollywood Principle
+        - unapred napisan server sa osnovnim funkcijama
+        - potrebno je napisati <span class="istaknuto">fragmente programa</span> koji postaju deo servera
+        - povezivanje našeg kôda sa serverom putem <span class="istaknuto">konvencije</span>
+            - implementacija interfejsa
+            - specijalan naziv klase/metode
+        </script>
+</section>
+
+<section data-markdown>
+    <script type="text/template">
+        ## IoC primer: Java servleti
+        - Tomcat je unapred napisan server
+        - servlet je fragment programa
+        - konvencija je implementacija interfejsa
+
+```java
+public class HelloWorld extends HttpServlet { 
+  public void doGet(HttpServletRequest req, HttpServletResponse res)
+      throws ServletException, IOException {
+
+    response.setContentType("text/html");
+    String name = req.getParameter("name");
+    PrintWriter out = res.getWriter();
+    out.println("<h1>Hello " + name + "</h1>");
+  }
+}
+```
+    </script>
+</section>
+
+<section data-markdown>
+    <script type="text/template">
+        ## Servleti: za
+        - životnim ciklusom upravlja server
+        - parsiranje HTTP zahteva i formiranje odgovora
+        - rešena mrežna komunikacija i threadovi 
+
+        <br/>
+        
+        ## Servleti: protiv 
+        - pomešana poslovna logika sa prikazom stranice
+        - komplikovana konvencija
+        - nedovoljno dobro rešena mrežna komunikacija i threadovi
+    </script>
+</section>
+
+<section data-markdown>
+    <script type="text/template">
+        ## IoC u opštem smislu
+        - [POJO](https://en.wikipedia.org/wiki/Plain_Old_Java_Object) beans: nema posebnih interfejsa
+        - upravljanje životnim ciklusom: ne instanciramo svoje klase
+    </script>
+</section>
+
+<section data-markdown>
+    <script type="text/template">
+        ## IoC primer: Spring kontejner
+        - kontejner upravlja beanovima
+        - ugrađen u Tomcat
+        - jedan jedini servlet koji obrađuje sve zahteve
+
+        <img src="img/spring-container.svg" width="600" style="border:0"/>
+    </script>
+</section>
+
+<section data-markdown>
+    <script type="text/template">
+        ## IoC primer: Tomcat + Spring
+        - koristimo Tomcat za osnovne funkcije
+            - parsiranje HTTP poruka
+            - threadovi za obradu zahteva
+        - koristimo Spring za organizaciju aplikativnog kôda
+    </script>
+</section>
+
+<section>
+    <h2>Spring bean</h2>
+    <pre><code data-trim>
+public class HelloWorldBean { 
+    public String sayHello(String name) {
+        return "Hello " + name;
+    }
+}
+    </code></pre>
+    <ul>
+        <li>ovaj kôd sadrži samo poslovnu logiku</li>
+        <li>nema specijalnih API-ja</li>
+        <li>može da se koristi i izvan servera</li>
+        <li>daleko jednostavnije testiranje</li>
+    </ul>
+</section>
+
+<section>
+    <h1>#2<br/>Dependency Injection</h1>
+</section>
+
+<section>
+    <h2>Reference između beanova</h2>
+    <ul>
+        <li>ručno kreiranje veze između beanova</li>
+    </ul>
+    <pre><code data-trim>
+public class LoginBean { 
+    private HelloWorldBean hello;
+    private AuthStore authStore;
+    
+    public LoginBean() {
+        hello = new HelloWorldBean();  // ovde se uspostavlja veza
+        authStore = new AuthStore();   // i ovde
+    }
+
+    public boolean login(String username, String password) {
+        if (!authStore.check(username, password))
+            return false;
+        System.out.println(hello.sayHello(username));
+    }
+}
+    </code></pre>
+    <small>
+    <ul>
+        <li><code>LoginBean</code> uvek pravi svoj <code>AuthStore</code></li>
+        <li>ne možemo testirati <code>LoginBean</code> bez pravljenja <code>AuthStore</code></li>
+        <li>može biti raznih <code>AuthStore</code>: fajl sa lozinkama, baza podataka...</li>
+    </ul>
+    </small>
+</section>
+
+<section>
+    <h2>Reference između beanova</h2>
+    <ul>
+        <li>korisno je izbaciti kôd koji uspostavlja vezu</li>
+    </ul>
+    <pre><code data-trim>
+public class LoginBean { 
+    private HelloWorldBean hello;  // nigde u ovoj klasi ne inicijalizujemo ovaj atribut
+    private AuthStore authStore;   // ni ovaj
+    
+    public void setHello(HelloWorldBean hello) {  // dodat je setter
+        this.hello = hello;
+    }
+
+    public void setAuthStore(AuthStore authStore) {  // dodat je setter
+        this.authStore = authStore;
+    }
+
+    public boolean login(String username, String password) {
+        if (!authStore.check(username, password))
+            return false;
+        System.out.println(hello.sayHello(username));
+    }
+}
+    </code></pre>
+    <small>
+    <ul>
+        <li>ovakav kôd neće raditi ako atributi nisu inicijalizovan</li>
+        <li>ali ako se atributi nekako inicijalizuju...</li>
+        <li>...ovakav kôd je mnogo fleksibilniji</li>
+    </ul>
+    </small>
+</section>
+
+<section>
+    <h2>Razdvajanje interfejsa i implementacije</h2>
+    možemo imati različite implementacije istog beana
+<pre><code data-trim>
+public interface AuthStore {
+    public boolean check(String username, String password);
+}
+</code></pre>
+<pre><code data-trim>
+public class FileAuthStore implements AuthStore {
+    public boolean check(String username, String password) {
+        // proverava ime+lozinku u fajlu
+    }
+}
+</code></pre>
+<pre><code data-trim>
+public class DbAuthStore implements AuthStore {
+    public boolean check(String username, String password) {
+        // proverava ime+lozinku u bazi podataka
+    }
+}
+</code></pre>
+</section>
+
+<section>
+    <h2>Razdvajanje interfejsa i implementacije</h2>
+    <code>LoginBean</code> može dobiti referencu na različite <code>AuthStore</code>-ove
+    <img src="img/dependency-injection.svg" width="800"/>
+</section>
+
+<section>
+    <h2>Razdvajanje interfejsa i implementacije</h2>
+    <code>LoginBean</code> može dobiti referencu na različite <code>AuthStore</code>-ove
+<pre><code data-trim>
+public void test1() {
+    HelloWorldBean hello = new HelloWorldBean();
+    AuthStore authStore = new FileAuthStore();
+    LoginBean loginBean = new LoginBean();
+    login.setHello(hello);
+    login.setAuthStore(authStore);
+    login.login("pera", "qwerty123");
+}
+public void test2() {
+    HelloWorldBean hello = new HelloWorldBean();
+    AuthStore authStore = new DbAuthStore();
+    LoginBean loginBean = new LoginBean();
+    login.setHello(hello);
+    login.setAuthStore(authStore);
+    login.login("pera", "qwerty123");
+}
+</code></pre>
+</section>
+
+<section>
+    <h2>Ubrizgavanje zavisnosti</h2>
+    <span class="istaknuto">dependency injection</span>: kontejner inicijalizuje atribute na osnovu konfiguracije
+<pre><code class="xml" data-trim>
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans.xsd"&gt;
+
+  &lt;bean id="helloBean" class="isa15.pr01.HelloWorldBean"/&gt;
+  &lt;bean id="auth" class="isa15.pr01.FileAuthStore"/&gt;
+  &lt;bean id="login" class="isa15.pr01.LoginBean"&gt;
+    &lt;property name="authStore" ref="auth"/&gt;
+    &lt;property name="hello" ref="helloBean"/&gt;
+  &lt;/bean&gt;
+&lt;/beans&gt;
+</code></pre>
+</section>
+
+<section>
+    <h2>Pokretanje beanova</h2>
+<pre><code class="java" data-trim>
+public class Primer01 {
+    public static void main(String[] args) {
+        ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext(
+            "META-INF/login.xml");
+        LoginBean login = ctx.getBean(LoginBean.class);
+        boolean status = login.login("pera", "qwerty123");
+        System.out.println(status);
+        ctx.close();
+    }
+}
+</code></pre>
+</section>
+
+<section data-markdown>
+    <script type="text/template">
+        ## Prvi Spring projekat
+        - raspored fajlova prema Maven i Gradle konvenciji
+
+        fajl | opis
+        -----|-----
+        src | izvorni kod
+        main | izvorni kod aplikacije
+        java | izvorni kod Java programa
+        resources | fajlovi potrebni za rad programa
+        test | izvorni kod testova
+    </script>
+</section>
+
+<section>
+    <h2>Prvi Spring projekat</h2>
+    <img src="img/project-layout.png" style="width: 40%; border: 0"/>
+</section>
+
+<section>
+    <h2>Prvi Spring projekat</h2>
+<pre><code class="bash" data-trim>
+$ gradle test
+$ gradle build
+$ gradle run
+</code></pre>
+</section>
+
+<section>
+    <h1>#3<br/>ŽIVOTNI CIKLUS BEANOVA</h1>
+</section>
+
+			</div>
+
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+
+			// Full list of configuration options available at:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: false,
+				history: true,
+				center: true,
+
+				transition: 'none', // none/fade/slide/convex/concave/zoom
+
+				// Optional reveal.js plugins
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, condition: function() { return !!document.querySelector( 'pre code' ); }, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>

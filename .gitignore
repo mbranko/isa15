@@ -10,3 +10,7 @@ gradle-app.setting
 # Ignore IntelliJ-specific files
 .idea
 *.iml
+
+# Ignore Eclipse-specific files
+bin/
+

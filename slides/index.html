@@ -447,6 +447,57 @@ $ gradle run
     <h1>#3<br/>ŽIVOTNI CIKLUS BEANOVA</h1>
 </section>
 
+<section>
+    <h2>Kreiranje i uništavanje beana</h2>
+    <img src="img/bean-lifecycle.png" style="width: 80%; border: 0"/>
+</section>
+
+<section>
+    <h2>Kreiranje i uništavanje beana</h2>
+    <ol>
+        <li>instanciraj bean</li>
+        <li>napuni vrednosti propertija</li>
+        <li>ako želi da zna svoje ime, tj. implementira <code>BeanNameAware</code>, pozovi <code>setBeanName</code></li>
+        <li>ako je <code>BeanFactoryAware</code>, pozovi <code>setBeanFactory</code></li>
+        <li>ako je <code>ApplicationContextAware</code>, pozovi <code>setApplicationContext</code></li>
+        <li>ako je <code>BeanPostProcessor</code>, pozovi <code>postProcessBeforeInitialization</code></li>
+    </ol>
+</section>
+
+<section>
+    <h2>Kreiranje i uništavanje beana</h2>
+    <ol start="7">
+        <li>ako implementira <code>InitializingBean</code>, pozovi <code>afterPropertiesSet</code></li>
+        <li>ako je <code>BeanPostProcessor</code>, pozovi <code>postProcessAfterInitialization</code></li>
+        <li>u ovom trenutku bean je spreman za upotrebu</li>
+        <li>...</li>
+        <li>život beana je vezan za njegov <code>ApplicationContext</code>
+        <li>ako implementira <code>DisposableBean</code>, pozovi <code>destroy</code></li>
+    </ol>
+</section>
+
+<section>
+    <h2>Koliko puta se kreira bean?</h2>
+    <ul>
+        <li><i>singleton</i>: jednom za celu aplikaciju</li>
+        <li><i>prototype</i>: svaki put kada se ubrizgava</li>
+        <li><i>session</i>: jednom za svaku web sesiju</li>
+        <li><i>request</i>: jednom za svaki web zahtev</li>
+    </ul>
+<pre><code class="xml" data-trim>
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans.xsd"&gt;
+
+  &lt;bean id="helloBean" class="isa15.pr01.HelloWorldBean" scope="prototype"/&gt;
+&lt;/beans&gt;
+</code></pre>
+</section>
+
+
+
 			</div>
 
 		</div>

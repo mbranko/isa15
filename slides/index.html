@@ -477,7 +477,8 @@ $ gradle run
 </section>
 
 <section>
-    <h2>Koliko puta se kreira bean?</h2>
+    <h2>Scope: opseg vidljivosti</h2>
+    <p class="istaknuto">Koliko puta se kreira bean?</p>
     <ul>
         <li><i>singleton</i>: jednom za celu aplikaciju</li>
         <li><i>prototype</i>: svaki put kada se ubrizgava</li>
@@ -496,7 +497,30 @@ $ gradle run
 </code></pre>
 </section>
 
+<section>
+    <h2>Cross-scope injection</h2>
+    <ul>
+        <li><i>singleton -&gt; singleton</i>: OK</li>
+        <li><i>session -&gt; singleton</i>: kako znati koju instancu ubrizgati?</li>
+        <li>...</li>
+    </ul>
+    <p class="left">Ubrizgava se <i class="istaknuto">proxy</i> kao posrednik između dva beana. Veza prema pravom beanu se određuje tokom rada</p>.
+    <img src="img/cross-scope-injection.png" style="width: 60%; border: 0"/>
+</section>
 
+<section>
+    <h2>Scoped proxy</h2>
+<pre><code class="xml" data-trim>
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;beans xmlns="http://www.springframework.org/schema/beans"
+  ...
+  
+  &lt;bean id="helloBean" class="isa15.pr01.HelloWorldBean" scope="session"&gt;
+    &lt;aop:scoped-proxy/&gt;
+  &lt;/bean&gt;
+&lt;/beans&gt;
+</code></pre>
+</section>
 
 			</div>
 
